@@ -1,0 +1,456 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&family=DM+Serif+Display:ital@0;1&family=Poppins:wght@700;800;900&family=Yatra+One&display=swap');
+
+@import "tailwindcss";
+
+/* ===== CSS Custom Properties ===== */
+:root {
+  --hh-green-dark: #0d1f0d;
+  --hh-green: #1a3a1a;
+  --hh-green-mid: #1e4d1e;
+  --hh-green-light: #2a5c2a;
+  --hh-yellow: #f5e642;
+  --hh-yellow-hot: #ffe600;
+  --hh-pink: #ff3fa4;
+  --hh-magenta: #e91e8c;
+  --hh-orange: #ff6b35;
+  --hh-cream: #fff8e7;
+  --hh-sand: #f0d080;
+}
+
+/* ===== Base Reset ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--hh-green-dark);
+  color: var(--hh-yellow);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== App Container ===== */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Typography ===== */
+.font-bebas { font-family: 'Bebas Neue', cursive; }
+.font-mono  { font-family: 'Space Mono', monospace; }
+.font-inter { font-family: 'Inter', sans-serif; }
+
+/* ===== Landing Hero ===== */
+.hero-bg {
+  background:
+    radial-gradient(ellipse at 60% 0%, rgba(255, 63, 164, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(245, 230, 66, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #0d1f0d 0%, #1a3a1a 40%, #0d2a1a 100%);
+  position: relative;
+}
+
+.hero-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* ===== Card Wrapper ===== */
+.id-card-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 2px var(--hh-yellow),
+    0 0 40px rgba(245, 230, 66, 0.2),
+    0 40px 80px rgba(0, 0, 0, 0.6);
+  font-family: 'Inter', sans-serif;
+}
+
+/* ===== Card Background ===== */
+.card-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(255, 63, 164, 0.25) 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 100%, rgba(245, 230, 66, 0.1) 0%, transparent 50%),
+    linear-gradient(170deg, #0a1f0a 0%, #1a3a1a 35%, #0d2a15 70%, #0a2010 100%);
+}
+
+/* ===== Card decorative dots ===== */
+.card-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(245,230,66,0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+/* ===== Photo Container ===== */
+.photo-container {
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.photo-container:active { cursor: grabbing; }
+
+.photo-container img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  pointer-events: none;
+  will-change: transform;
+  max-width: none;
+}
+
+/* ===== Builder Title Banner ===== */
+.builder-title-banner {
+  background: linear-gradient(135deg, var(--hh-pink) 0%, var(--hh-magenta) 50%, #c0166a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.builder-title-banner::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(255,255,255,0.04) 4px,
+    rgba(255,255,255,0.04) 8px
+  );
+}
+
+/* ===== Upload Zone ===== */
+.upload-zone {
+  border: 2px dashed rgba(245, 230, 66, 0.4);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(245, 230, 66, 0.03);
+  cursor: pointer;
+}
+
+.upload-zone:hover,
+.upload-zone.dragging {
+  border-color: var(--hh-yellow);
+  background: rgba(245, 230, 66, 0.08);
+  box-shadow: 0 0 30px rgba(245, 230, 66, 0.15);
+}
+
+/* ===== Buttons ===== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--hh-yellow);
+  color: var(--hh-green-dark);
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  padding: 14px 32px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  width: 100%;
+  font-weight: 400;
+}
+
+.btn-primary:hover {
+  background: var(--hh-yellow-hot);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245, 230, 66, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--hh-yellow);
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  padding: 13px 32px;
+  border-radius: 12px;
+  border: 2px solid var(--hh-yellow);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+.btn-secondary:hover {
+  background: rgba(245, 230, 66, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245, 230, 66, 0.15);
+}
+
+.btn-pink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--hh-pink);
+  color: #fff;
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  padding: 14px 32px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+.btn-pink:hover {
+  background: var(--hh-magenta);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 63, 164, 0.4);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.06);
+  color: rgba(245, 230, 66, 0.7);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 230, 66, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  letter-spacing: 0.04em;
+}
+
+.btn-ghost:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--hh-yellow);
+  border-color: rgba(245, 230, 66, 0.4);
+}
+
+/* ===== Input Fields ===== */
+.hh-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(245, 230, 66, 0.25);
+  border-radius: 12px;
+  color: var(--hh-yellow);
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  padding: 14px 16px;
+  outline: none;
+  transition: all 0.2s ease;
+  caret-color: var(--hh-yellow);
+}
+
+.hh-input::placeholder {
+  color: rgba(245, 230, 66, 0.3);
+}
+
+.hh-input:focus {
+  border-color: var(--hh-yellow);
+  background: rgba(245, 230, 66, 0.06);
+  box-shadow: 0 0 0 3px rgba(245, 230, 66, 0.1);
+}
+
+/* ===== Label ===== */
+.hh-label {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  color: rgba(245, 230, 66, 0.6);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+/* ===== Generating Animation ===== */
+.generating-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--hh-green-dark);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-slide-up   { animation: slide-up 0.6s cubic-bezier(0.4,0,0.2,1) both; }
+.animate-slide-in-left { animation: slide-in-left 0.5s cubic-bezier(0.4,0,0.2,1) both; }
+.animate-fade-in    { animation: fade-in 0.5s ease both; }
+.animate-float      { animation: float 3s ease-in-out infinite; }
+
+/* ===== Stagger delays ===== */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+.delay-700 { animation-delay: 0.7s; }
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--hh-green-dark); }
+::-webkit-scrollbar-thumb { background: rgba(245,230,66,0.3); border-radius: 3px; }
+
+/* ===== Tooltip ===== */
+.tooltip {
+  position: relative;
+}
+.tooltip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: var(--hh-cream);
+  font-size: 0.7rem;
+  font-family: 'Space Mono', monospace;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 10;
+}
+.tooltip:hover::after { opacity: 1; }
+
+/* ===== Scanline effect for card ===== */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0) 0px,
+    rgba(0,0,0,0) 2px,
+    rgba(0,0,0,0.04) 2px,
+    rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ===== Barcode ===== */
+.barcode {
+  display: flex;
+  gap: 1px;
+  align-items: stretch;
+  height: 28px;
+}
+.barcode-bar {
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* ===== Photo zoom slider ===== */
+input[type=range].zoom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(245,230,66,0.2);
+  border-radius: 2px;
+  outline: none;
+}
+input[type=range].zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--hh-yellow);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(245,230,66,0.5);
+}
+input[type=range].zoom-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: var(--hh-yellow);
+  cursor: pointer;
+}
+
+/* ===== Goa Beach Scene SVG ===== */
+.beach-scene {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
