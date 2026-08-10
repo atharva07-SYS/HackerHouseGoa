@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { downloadCardAsPng, getCardDataUrl, openImageInNewTab, shareToX, nativeShare } from '../utils/exportCard';
+import { downloadCardAsJpg, getCardJpgDataUrl, openImageInNewTab, shareToX, nativeShare } from '../utils/exportCard';
 
 /**
  * ActionButtons
- * Download PNG, View/Save Image (mobile helper), Share to X, Native Share, Edit Details.
+ * Download JPG, View/Save Image (mobile helper), Share to X, Native Share, Edit Details.
  */
 export default function ActionButtons({ cardRef, userData, onEdit }) {
   const [downloading, setDownloading] = useState(false);
@@ -19,14 +19,13 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
     setDownloading(true);
     setDownloadDone(false);
     try {
-      await downloadCardAsPng(cardRef.current, 'HH-Goa-2026-Builder-ID.png');
+      await downloadCardAsJpg(cardRef.current, 'HH-Goa-2026-Builder-ID.jpg');
       setDownloadDone(true);
       setTimeout(() => setDownloadDone(false), 3000);
     } catch (err) {
       console.error('Download failed:', err);
-      // Fallback: view in new tab
       try {
-        const dataUrl = await getCardDataUrl(cardRef.current);
+        const dataUrl = await getCardJpgDataUrl(cardRef.current);
         openImageInNewTab(dataUrl);
       } catch (e) {
         alert('Could not export image. Please try again.');
@@ -40,7 +39,7 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
     if (!cardRef?.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await getCardDataUrl(cardRef.current);
+      const dataUrl = await getCardJpgDataUrl(cardRef.current);
       openImageInNewTab(dataUrl);
     } catch (err) {
       console.error('View image failed:', err);
@@ -49,17 +48,25 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
     }
   };
 
-  const handleShareX = () => {
+  const handleShareX = async () => {
+    // Automatically trigger JPG download so user has the file ready to attach
+    if (cardRef?.current) {
+      try {
+        await downloadCardAsJpg(cardRef.current, 'HH-Goa-2026-Builder-ID.jpg');
+      } catch (e) {
+        console.warn('Auto download before X share failed:', e);
+      }
+    }
     shareToX(shareText);
     setShareStatus('twitter');
-    setTimeout(() => setShareStatus(''), 4000);
+    setTimeout(() => setShareStatus(''), 6000);
   };
 
   const handleNativeShare = async () => {
     if (!cardRef?.current) return;
     setSharing(true);
     try {
-      const dataUrl = await getCardDataUrl(cardRef.current);
+      const dataUrl = await getCardJpgDataUrl(cardRef.current);
       const result = await nativeShare(dataUrl, shareText);
       if (result === 'native' || result === 'native-text') {
         setShareStatus('native-ok');
@@ -74,13 +81,13 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* Download PNG */}
+      {/* Download JPG */}
       <button
         className="btn-primary"
         onClick={handleDownload}
         disabled={downloading}
         aria-busy={downloading}
-        aria-label="Download Builder ID as PNG"
+        aria-label="Download Builder ID as JPG"
       >
         {downloading ? (
           <>
@@ -93,12 +100,12 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
                 animation: 'spin-slow 0.7s linear infinite',
               }}
             />
-            EXPORTING PNG...
+            EXPORTING JPG...
           </>
         ) : downloadDone ? (
-          '✅ DOWNLOADED!'
+          '✅ DOWNLOADED JPG!'
         ) : (
-          '⬇ DOWNLOAD PNG'
+          '⬇ DOWNLOAD JPG'
         )}
       </button>
 
@@ -107,9 +114,9 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
         className="btn-secondary"
         onClick={handleViewImage}
         disabled={downloading}
-        aria-label="Open image in new tab to view or save"
+        aria-label="Open JPG image in new tab to view or save"
       >
-        🖼 VIEW / SAVE IMAGE (NEW TAB)
+        🖼 VIEW / SAVE JPG (NEW TAB)
       </button>
 
       {/* Share to X */}
@@ -141,7 +148,7 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
           role="status"
           aria-live="polite"
         >
-          🌴 X opened! Download your PNG or click "VIEW / SAVE IMAGE" to attach it to your tweet!
+          🌴 JPG downloaded & X opened! Attach your downloaded Builder ID image to your tweet!
         </div>
       )}
 

@@ -1,20 +1,22 @@
 /**
  * exportCard.js
- * Exports the Builder ID card as a high-resolution PNG using html-to-image.
+ * Exports the Builder ID card as a high-resolution JPG using html-to-image.
  * Robust implementation with fallbacks for mobile browsers and canvas export.
  */
 
 /**
- * Get a high-resolution PNG data URL from a DOM element.
- * Uses html-to-image with fallback to canvas rendering if needed.
+ * Get a high-resolution JPG data URL from a DOM element.
+ * Uses html-to-image toJpeg with fallback to canvas rendering if needed.
  * @param {HTMLElement} element
- * @returns {Promise<string>} PNG data URL
+ * @param {number} [quality=0.95]
+ * @returns {Promise<string>} JPG data URL
  */
-export async function getCardDataUrl(element) {
-  const { toPng, toCanvas } = await import('html-to-image');
+export async function getCardJpgDataUrl(element, quality = 0.95) {
+  const { toJpeg, toCanvas } = await import('html-to-image');
 
   const options = {
     pixelRatio: 2,
+    quality,
     cacheBust: false,
     includeQueryParams: true,
     style: {
@@ -23,34 +25,28 @@ export async function getCardDataUrl(element) {
       transform: 'none', // reset scale transforms during export
     },
     filter: (node) => {
-      // Exclude elements with data-no-export
       if (node.dataset && node.dataset.noExport) return false;
       return true;
     },
   };
 
   try {
-    // Primary export attempt via toPng
-    return await toPng(element, options);
+    return await toJpeg(element, options);
   } catch (err) {
-    console.warn('html-to-image toPng failed, trying toCanvas fallback:', err);
+    console.warn('html-to-image toJpeg failed, trying toCanvas fallback:', err);
     try {
       const canvas = await toCanvas(element, options);
-      return canvas.toDataURL('image/png');
+      return canvas.toDataURL('image/jpeg', quality);
     } catch (err2) {
       console.error('Canvas export fallback also failed:', err2);
-      throw new Error('Could not generate image. Please try uploading a JPG/PNG photo.');
+      throw new Error('Could not generate image. Please try uploading a JPG photo.');
     }
   }
 }
 
-/**
- * Trigger file download for a PNG data URL.
- * Works on desktop and handles mobile fallbacks (e.g. iOS Safari new window).
- * @param {HTMLElement} element
- * @param {string} [filename]
- * @returns {Promise<string>} Returns the dataUrl for display
- */
+// Alias for backwards compatibility
+export const getCardDataUrl = getCardJpgDataUrl;
+
 /**
  * Synchronously convert a base64 Data URL to a Blob.
  * Avoids async fetch ticks so browser download triggers cleanly in the user's Downloads folder.
@@ -59,7 +55,7 @@ export async function getCardDataUrl(element) {
  */
 function dataUrlToBlob(dataUrl) {
   const parts = dataUrl.split(';base64,');
-  const contentType = parts[0].split(':')[1] || 'image/png';
+  const contentType = parts[0].split(':')[1] || 'image/jpeg';
   const raw = window.atob(parts[1]);
   const uInt8Array = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; ++i) {
@@ -69,13 +65,13 @@ function dataUrlToBlob(dataUrl) {
 }
 
 /**
- * Trigger file download directly into the user's Downloads folder.
+ * Trigger file download directly into the user's Downloads folder as a JPG image.
  * @param {HTMLElement} element
- * @param {string} [filename]
+ * @param {string} [filename='HH-Goa-2026-Builder-ID.jpg']
  * @returns {Promise<string>}
  */
-export async function downloadCardAsPng(element, filename = 'HH-Goa-2026-Builder-ID.png') {
-  const dataUrl = await getCardDataUrl(element);
+export async function downloadCardAsJpg(element, filename = 'HH-Goa-2026-Builder-ID.jpg') {
+  const dataUrl = await getCardJpgDataUrl(element);
 
   try {
     const blob = dataUrlToBlob(dataUrl);
@@ -108,6 +104,9 @@ export async function downloadCardAsPng(element, filename = 'HH-Goa-2026-Builder
   return dataUrl;
 }
 
+// Alias for backwards compatibility
+export const downloadCardAsPng = downloadCardAsJpg;
+
 /**
  * Open a data URL image in a new browser tab for manual saving.
  * Useful when mobile browsers block automatic file downloads.
@@ -136,14 +135,13 @@ export function openImageInNewTab(dataUrl) {
     `);
     newTab.document.close();
   } else {
-    // If popup blocked, assign to current location
     window.location.href = dataUrl;
   }
 }
 
 /**
  * Share via Web Share API (mobile-first native sharing).
- * @param {string} dataUrl - PNG data URL
+ * @param {string} dataUrl - JPG data URL
  * @param {string} text
  * @returns {Promise<string>}
  */
@@ -151,7 +149,7 @@ export async function nativeShare(dataUrl, text) {
   try {
     const res = await fetch(dataUrl);
     const blob = await res.blob();
-    const file = new File([blob], 'HH-Goa-2026-Builder-ID.png', { type: 'image/png' });
+    const file = new File([blob], 'HH-Goa-2026-Builder-ID.jpg', { type: 'image/jpeg' });
 
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ title: 'HH Goa 2026 Builder ID', text, files: [file] });
