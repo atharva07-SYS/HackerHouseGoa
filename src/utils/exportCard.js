@@ -12,10 +12,13 @@
 export async function getCardPngBlob(element) {
   const { toBlob, toCanvas } = await import('html-to-image');
 
-  // Ensure all fonts are loaded before capturing
-  if (document.fonts) {
+  // Wait for all fonts to be ready (max 800ms timeout)
+  if (document.fonts && document.fonts.ready) {
     try {
-      await document.fonts.ready;
+      await Promise.race([
+        document.fonts.ready,
+        new Promise((resolve) => setTimeout(resolve, 800)),
+      ]);
     } catch (e) {
       console.warn('Font loading check skipped:', e);
     }
@@ -23,7 +26,7 @@ export async function getCardPngBlob(element) {
 
   const options = {
     pixelRatio: 3,
-    cacheBust: true,
+    cacheBust: false, // Avoid network hangs during re-fetch
     backgroundColor: '#ffffff',
     style: {
       transform: 'none', // reset scale transforms during export
@@ -38,16 +41,20 @@ export async function getCardPngBlob(element) {
 
   try {
     const blob = await toBlob(element, options);
-    if (blob) return blob;
-    throw new Error('toBlob returned null');
+    if (blob && blob.size > 1000) return blob;
+    throw new Error('toBlob returned invalid or empty blob');
   } catch (err) {
     console.warn('html-to-image toBlob failed, using toCanvas fallback:', err);
     const canvas = await toCanvas(element, options);
     return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error('Canvas toBlob failed'));
-      }, 'image/png');
+      canvas.toBlob(
+        (blob) => {
+          if (blob && blob.size > 1000) resolve(blob);
+          else reject(new Error('Canvas toBlob failed'));
+        },
+        'image/png',
+        1.0
+      );
     });
   }
 }
