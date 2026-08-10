@@ -1,28 +1,34 @@
 /**
  * exportCard.js
- * Exports the Builder ID card as a high-resolution JPG using html-to-image.
- * Robust implementation with fallbacks for mobile browsers and canvas export.
+ * High-resolution standalone PNG export system for Hacker House Goa 2026 Builder ID.
+ * Captures the complete rendered IDCard DOM element using html-to-image's toBlob().
  */
 
 /**
- * Get a high-resolution JPG data URL from a DOM element.
- * Uses html-to-image toJpeg with fallback to canvas rendering if needed.
+ * Capture the complete rendered IDCard DOM element as a standalone PNG Blob.
  * @param {HTMLElement} element
- * @param {number} [quality=0.95]
- * @returns {Promise<string>} JPG data URL
+ * @returns {Promise<Blob>}
  */
-export async function getCardJpgDataUrl(element, quality = 0.95) {
-  const { toJpeg, toCanvas } = await import('html-to-image');
+export async function getCardPngBlob(element) {
+  const { toBlob, toCanvas } = await import('html-to-image');
+
+  // Ensure all fonts are loaded before capturing
+  if (document.fonts) {
+    try {
+      await document.fonts.ready;
+    } catch (e) {
+      console.warn('Font loading check skipped:', e);
+    }
+  }
 
   const options = {
-    pixelRatio: 2,
-    quality,
-    cacheBust: false,
-    includeQueryParams: true,
+    pixelRatio: 3,
+    cacheBust: true,
+    backgroundColor: '#ffffff',
     style: {
+      transform: 'none', // reset scale transforms during export
       fontSmoothing: 'antialiased',
       WebkitFontSmoothing: 'antialiased',
-      transform: 'none', // reset scale transforms during export
     },
     filter: (node) => {
       if (node.dataset && node.dataset.noExport) return false;
@@ -31,81 +37,53 @@ export async function getCardJpgDataUrl(element, quality = 0.95) {
   };
 
   try {
-    return await toJpeg(element, options);
+    const blob = await toBlob(element, options);
+    if (blob) return blob;
+    throw new Error('toBlob returned null');
   } catch (err) {
-    console.warn('html-to-image toJpeg failed, trying toCanvas fallback:', err);
-    try {
-      const canvas = await toCanvas(element, options);
-      return canvas.toDataURL('image/jpeg', quality);
-    } catch (err2) {
-      console.error('Canvas export fallback also failed:', err2);
-      throw new Error('Could not generate image. Please try uploading a JPG photo.');
-    }
+    console.warn('html-to-image toBlob failed, using toCanvas fallback:', err);
+    const canvas = await toCanvas(element, options);
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas toBlob failed'));
+      }, 'image/png');
+    });
   }
 }
 
-// Alias for backwards compatibility
-export const getCardDataUrl = getCardJpgDataUrl;
-
 /**
- * Synchronously convert a base64 Data URL to a Blob.
- * Avoids async fetch ticks so browser download triggers cleanly in the user's Downloads folder.
- * @param {string} dataUrl
- * @returns {Blob}
- */
-function dataUrlToBlob(dataUrl) {
-  const parts = dataUrl.split(';base64,');
-  const contentType = parts[0].split(':')[1] || 'image/jpeg';
-  const raw = window.atob(parts[1]);
-  const uInt8Array = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; ++i) {
-    uInt8Array[i] = raw.charCodeAt(i);
-  }
-  return new Blob([uInt8Array], { type: contentType });
-}
-
-/**
- * Trigger file download directly into the user's Downloads folder as a JPG image.
+ * Trigger file download for a standalone PNG image: HH-Goa-2026-Builder-ID.png
  * @param {HTMLElement} element
- * @param {string} [filename='HH-Goa-2026-Builder-ID.jpg']
- * @returns {Promise<string>}
+ * @param {string} [filename='HH-Goa-2026-Builder-ID.png']
  */
-export async function downloadCardAsJpg(element, filename = 'HH-Goa-2026-Builder-ID.jpg') {
-  const dataUrl = await getCardJpgDataUrl(element);
+export async function downloadCardAsPng(element, filename = 'HH-Goa-2026-Builder-ID.png') {
+  const blob = await getCardPngBlob(element);
+  const url = URL.createObjectURL(blob);
 
-  try {
-    const blob = dataUrlToBlob(dataUrl);
-    const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.style.display = 'none';
 
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = filename;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 
-    setTimeout(() => {
-      if (document.body.contains(link)) document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    }, 1000);
-  } catch (err) {
-    console.warn('Blob download failed, fallback to direct dataUrl:', err);
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = filename;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      if (document.body.contains(link)) document.body.removeChild(link);
-    }, 1000);
-  }
-
-  return dataUrl;
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// Alias for backwards compatibility
-export const downloadCardAsPng = downloadCardAsJpg;
+// Aliases for compatibility
+export const downloadCardAsJpg = downloadCardAsPng;
+export async function getCardDataUrl(element) {
+  const blob = await getCardPngBlob(element);
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+}
+export const getCardJpgDataUrl = getCardDataUrl;
 
 /**
  * Open a data URL image in a new browser tab for manual saving.
@@ -140,46 +118,47 @@ export function openImageInNewTab(dataUrl) {
 }
 
 /**
- * Share via Web Share API (mobile-first native sharing).
- * @param {string} dataUrl - JPG data URL
- * @param {string} text
- * @returns {Promise<string>}
+ * Share via Web Share API with the actual generated PNG file.
+ * @param {HTMLElement} element
+ * @param {string} [customText='#FrameInGoa']
  */
-export async function nativeShare(dataUrl, text) {
-  try {
-    const res = await fetch(dataUrl);
-    const blob = await res.blob();
-    const file = new File([blob], 'HH-Goa-2026-Builder-ID.jpg', { type: 'image/jpeg' });
+export async function shareCardFile(element, customText = '#FrameInGoa') {
+  const blob = await getCardPngBlob(element);
+  const file = new File([blob], 'HH-Goa-2026-Builder-ID.png', { type: 'image/png' });
 
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ title: 'HH Goa 2026 Builder ID', text, files: [file] });
-      return 'native';
-    }
-  } catch (err) {
-    if (err.name === 'AbortError') return 'cancelled';
-    console.warn('Native share with file failed:', err);
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      files: [file],
+      title: 'My Hacker House Goa 2026 Builder ID',
+      text: customText,
+    });
+    return 'shared-file';
+  } else if (navigator.share) {
+    await navigator.share({
+      title: 'My Hacker House Goa 2026 Builder ID',
+      text: customText,
+    });
+    return 'shared-text';
+  } else {
+    throw new Error('Web Share API not supported on this device');
   }
-
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: 'HH Goa 2026 Builder ID', text });
-      return 'native-text';
-    } catch {
-      return 'cancelled';
-    }
-  }
-
-  return 'unsupported';
 }
+
+export const nativeShare = async (dataUrl, text) => {
+  if (navigator.share) {
+    await navigator.share({ title: 'My Hacker House Goa 2026 Builder ID', text });
+    return 'native-text';
+  }
+  return 'unsupported';
+};
 
 /**
  * Open X (Twitter) share intent.
+ * Note: Twitter Web Intent API only accepts text & URL parameters (browsers do not allow web intent links to auto-attach local files).
  * @param {string} [customText]
  */
 export function shareToX(customText) {
-  const text =
-    customText ||
-    `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\n\nWhat's yours?\n\n#FrameInGoa #HackerHouseGoa`;
+  const text = customText || `Just got my Hacker House Goa 2026 Builder ID 🌴⚡ #FrameInGoa #HackerHouseGoa`;
   const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank', 'noopener,noreferrer,width=600,height=500');
 }

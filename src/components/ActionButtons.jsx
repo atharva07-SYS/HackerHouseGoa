@@ -1,31 +1,30 @@
 import React, { useState } from 'react';
-import { downloadCardAsJpg, getCardJpgDataUrl, openImageInNewTab, shareToX, nativeShare } from '../utils/exportCard';
+import { downloadCardAsPng, getCardDataUrl, openImageInNewTab, shareToX, shareCardFile } from '../utils/exportCard';
 
 /**
  * ActionButtons
- * Download JPG, View/Save Image (mobile helper), Share to X, Native Share, Edit Details.
+ * Handles Download PNG (standalone file), View/Save Image (mobile fallback),
+ * Web Share API (native file sharing), Share to X, and Edit Details.
  */
 export default function ActionButtons({ cardRef, userData, onEdit }) {
   const [downloading, setDownloading] = useState(false);
   const [downloadDone, setDownloadDone] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareStatus, setShareStatus] = useState('');
-  const [nativeShareAvail] = useState(() => !!navigator.share);
-
-  const shareText = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\n\nWhat's yours?\n\n#FrameInGoa #HackerHouseGoa`;
+  const [nativeShareAvail] = useState(() => !!(navigator.share));
 
   const handleDownload = async () => {
     if (!cardRef?.current) return;
     setDownloading(true);
     setDownloadDone(false);
     try {
-      await downloadCardAsJpg(cardRef.current, 'HH-Goa-2026-Builder-ID.jpg');
+      await downloadCardAsPng(cardRef.current, 'HH-Goa-2026-Builder-ID.png');
       setDownloadDone(true);
       setTimeout(() => setDownloadDone(false), 3000);
     } catch (err) {
       console.error('Download failed:', err);
       try {
-        const dataUrl = await getCardJpgDataUrl(cardRef.current);
+        const dataUrl = await getCardDataUrl(cardRef.current);
         openImageInNewTab(dataUrl);
       } catch (e) {
         alert('Could not export image. Please try again.');
@@ -39,7 +38,7 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
     if (!cardRef?.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await getCardJpgDataUrl(cardRef.current);
+      const dataUrl = await getCardDataUrl(cardRef.current);
       openImageInNewTab(dataUrl);
     } catch (err) {
       console.error('View image failed:', err);
@@ -49,15 +48,15 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
   };
 
   const handleShareX = async () => {
-    // Automatically trigger JPG download so user has the file ready to attach
+    // Automatically trigger PNG download so user has the actual image file ready to attach
     if (cardRef?.current) {
       try {
-        await downloadCardAsJpg(cardRef.current, 'HH-Goa-2026-Builder-ID.jpg');
+        await downloadCardAsPng(cardRef.current, 'HH-Goa-2026-Builder-ID.png');
       } catch (e) {
         console.warn('Auto download before X share failed:', e);
       }
     }
-    shareToX(shareText);
+    shareToX("Just got my Hacker House Goa 2026 Builder ID! 🌴⚡ #FrameInGoa #HackerHouseGoa");
     setShareStatus('twitter');
     setTimeout(() => setShareStatus(''), 6000);
   };
@@ -66,13 +65,12 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
     if (!cardRef?.current) return;
     setSharing(true);
     try {
-      const dataUrl = await getCardJpgDataUrl(cardRef.current);
-      const result = await nativeShare(dataUrl, shareText);
-      if (result === 'native' || result === 'native-text') {
+      const result = await shareCardFile(cardRef.current, 'Check out my Hacker House Goa 2026 Builder ID! #FrameInGoa');
+      if (result === 'shared-file' || result === 'shared-text') {
         setShareStatus('native-ok');
       }
     } catch (err) {
-      console.error('Share failed:', err);
+      console.warn('Share failed:', err);
     } finally {
       setSharing(false);
       setTimeout(() => setShareStatus(''), 3000);
@@ -81,13 +79,13 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-      {/* Download JPG */}
+      {/* Primary Download PNG */}
       <button
         className="btn-primary"
         onClick={handleDownload}
         disabled={downloading}
         aria-busy={downloading}
-        aria-label="Download Builder ID as JPG"
+        aria-label="Download Builder ID as PNG"
       >
         {downloading ? (
           <>
@@ -100,24 +98,62 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
                 animation: 'spin-slow 0.7s linear infinite',
               }}
             />
-            EXPORTING JPG...
+            EXPORTING PNG...
           </>
         ) : downloadDone ? (
-          '✅ DOWNLOADED JPG!'
+          '✅ DOWNLOADED PNG!'
         ) : (
-          '⬇ DOWNLOAD JPG'
+          '⬇ DOWNLOAD PNG'
         )}
       </button>
 
-      {/* View / Open Image (Mobile fallback) */}
+      {/* View / Open Image (Mobile in-app webview helper) */}
       <button
         className="btn-secondary"
         onClick={handleViewImage}
         disabled={downloading}
-        aria-label="Open JPG image in new tab to view or save"
+        aria-label="Open PNG image in new tab to view or save"
       >
-        🖼 VIEW / SAVE JPG (NEW TAB)
+        🖼 VIEW / SAVE IMAGE (NEW TAB)
       </button>
+
+      {/* Native Web Share API */}
+      {nativeShareAvail && (
+        <button
+          className="btn-ghost"
+          onClick={handleNativeShare}
+          disabled={sharing}
+          aria-label="Share actual PNG image file via device share sheet"
+        >
+          {sharing ? (
+            <>
+              <span
+                style={{
+                  width: '14px', height: '14px',
+                  border: '2px solid rgba(245,230,66,0.3)',
+                  borderTop: '2px solid #f5e642',
+                  borderRadius: '50%',
+                  animation: 'spin-slow 0.7s linear infinite',
+                }}
+              />
+              GENERATING SHARE...
+            </>
+          ) : shareStatus === 'native-ok' ? (
+            '✅ SHARED!'
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
+              SHARE IMAGE (DEVICE SHEET)
+            </>
+          )}
+        </button>
+      )}
 
       {/* Share to X */}
       <button
@@ -148,46 +184,8 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
           role="status"
           aria-live="polite"
         >
-          🌴 JPG downloaded & X opened! Attach your downloaded Builder ID image to your tweet!
+          🌴 PNG downloaded & X opened! Attach your downloaded HH-Goa-2026-Builder-ID.png file to your tweet!
         </div>
-      )}
-
-      {/* Native Share (mobile) */}
-      {nativeShareAvail && (
-        <button
-          className="btn-ghost"
-          onClick={handleNativeShare}
-          disabled={sharing}
-          aria-label="Share via device share sheet"
-        >
-          {sharing ? (
-            <>
-              <span
-                style={{
-                  width: '14px', height: '14px',
-                  border: '2px solid rgba(245,230,66,0.3)',
-                  borderTop: '2px solid #f5e642',
-                  borderRadius: '50%',
-                  animation: 'spin-slow 0.7s linear infinite',
-                }}
-              />
-              SHARING...
-            </>
-          ) : shareStatus === 'native-ok' ? (
-            '✅ SHARED!'
-          ) : (
-            <>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="18" cy="5" r="3" />
-                <circle cx="6" cy="12" r="3" />
-                <circle cx="18" cy="19" r="3" />
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-              </svg>
-              SHARE (DEVICE SHEET)
-            </>
-          )}
-        </button>
       )}
 
       {/* Edit */}
