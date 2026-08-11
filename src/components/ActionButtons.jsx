@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { downloadCardAsPng, getCardDataUrl, openImageInNewTab, shareToX, shareCardFile } from '../utils/exportCard';
+import { downloadCardAsPng, getCardDataUrl, openImageInNewTab, shareToX, shareCardFile, generateShareUrl } from '../utils/exportCard';
 
 /**
  * ActionButtons
  * Handles Download PNG (standalone file), View/Save Image (mobile fallback),
- * Web Share API (native file sharing), Share to X, and Edit Details.
+ * Copy Share Link, Web Share API (native file + link sharing), Share to X, and Edit Details.
  */
 export default function ActionButtons({ cardRef, userData, onEdit }) {
   const [downloading, setDownloading] = useState(false);
@@ -47,7 +47,29 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
     }
   };
 
+  const handleCopyLink = async () => {
+    const shareUrl = generateShareUrl(userData);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const input = document.createElement('input');
+        input.value = shareUrl;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+      }
+      setShareStatus('link-copied');
+    } catch (err) {
+      console.warn('Copy link failed:', err);
+      prompt('Copy your card link:', shareUrl);
+    }
+    setTimeout(() => setShareStatus(''), 4000);
+  };
+
   const handleShareX = async () => {
+    const shareUrl = generateShareUrl(userData);
     // Automatically trigger PNG download so user has the actual image file ready to attach
     if (cardRef?.current) {
       try {
@@ -56,7 +78,7 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
         console.warn('Auto download before X share failed:', e);
       }
     }
-    shareToX("Just got my Hacker House Goa 2026 Builder ID! 🌴⚡ #FrameInGoa #HackerHouseGoa");
+    shareToX("Just got my Hacker House Goa 2026 Builder ID! 🌴⚡ #FrameInGoa #HackerHouseGoa", shareUrl);
     setShareStatus('twitter');
     setTimeout(() => setShareStatus(''), 6000);
   };
@@ -65,7 +87,12 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
     if (!cardRef?.current) return;
     setSharing(true);
     try {
-      const result = await shareCardFile(cardRef.current, 'Check out my Hacker House Goa 2026 Builder ID! #FrameInGoa');
+      const shareUrl = generateShareUrl(userData);
+      const result = await shareCardFile(
+        cardRef.current,
+        'Check out my Hacker House Goa 2026 Builder ID! 🌴⚡ #FrameInGoa',
+        shareUrl
+      );
       if (result === 'shared-file' || result === 'shared-text') {
         setShareStatus('native-ok');
       }
@@ -117,13 +144,33 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
         🖼 VIEW / SAVE IMAGE (NEW TAB)
       </button>
 
+      {/* Copy Shareable Card Link */}
+      <button
+        className="btn-ghost"
+        onClick={handleCopyLink}
+        aria-label="Copy shareable link for this Builder ID"
+        style={{ borderColor: 'rgba(245,230,66,0.4)', color: '#f5e642' }}
+      >
+        {shareStatus === 'link-copied' ? (
+          '✅ LINK COPIED TO CLIPBOARD!'
+        ) : (
+          <>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+            🔗 COPY SHARE LINK
+          </>
+        )}
+      </button>
+
       {/* Native Web Share API */}
       {nativeShareAvail && (
         <button
           className="btn-ghost"
           onClick={handleNativeShare}
           disabled={sharing}
-          aria-label="Share actual PNG image file via device share sheet"
+          aria-label="Share actual PNG image file & link via device share sheet"
         >
           {sharing ? (
             <>
@@ -149,7 +196,7 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
                 <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
                 <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
               </svg>
-              SHARE IMAGE (DEVICE SHEET)
+              SHARE IMAGE & LINK (DEVICE SHEET)
             </>
           )}
         </button>
@@ -166,6 +213,27 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
         </svg>
         SHARE ON X
       </button>
+
+      {/* Link copied notification */}
+      {shareStatus === 'link-copied' && (
+        <div
+          style={{
+            background: 'rgba(245,230,66,0.1)',
+            border: '1px solid rgba(245,230,66,0.4)',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            fontFamily: "'Space Mono', monospace",
+            fontSize: '0.62rem',
+            color: '#f5e642',
+            letterSpacing: '0.05em',
+            lineHeight: 1.5,
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          ✨ Shareable card link copied! Paste it anywhere to share your Hacker House Goa 2026 Builder ID.
+        </div>
+      )}
 
       {/* X sharing note */}
       {shareStatus === 'twitter' && (
@@ -184,7 +252,7 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
           role="status"
           aria-live="polite"
         >
-          🌴 PNG downloaded & X opened! Attach your downloaded HH-Goa-2026-Builder-ID.png file to your tweet!
+          🌴 PNG downloaded & X opened with your share link! Attach your downloaded HH-Goa-2026-Builder-ID.png file to your tweet!
         </div>
       )}
 
@@ -199,3 +267,4 @@ export default function ActionButtons({ cardRef, userData, onEdit }) {
     </div>
   );
 }
+

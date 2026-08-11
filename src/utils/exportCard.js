@@ -125,47 +125,102 @@ export function openImageInNewTab(dataUrl) {
 }
 
 /**
- * Share via Web Share API with the actual generated PNG file.
+ * Generate a shareable URL containing encoded builder details.
+ * @param {Object} userData
+ * @returns {string}
+ */
+export function generateShareUrl(userData) {
+  if (!userData) return window.location.href.split('?')[0];
+
+  const params = new URLSearchParams();
+  if (userData.name) params.set('name', userData.name);
+  if (userData.stack) params.set('stack', userData.stack);
+  if (userData.team) params.set('team', userData.team);
+  if (userData.title) params.set('title', userData.title);
+
+  const baseUrl = window.location.href.split('?')[0].split('#')[0];
+  return `${baseUrl}?${params.toString()}`;
+}
+
+/**
+ * Parse shareable URL query parameters if present.
+ * @returns {Object|null}
+ */
+export function parseShareUrlParams() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get('name');
+    const stack = params.get('stack');
+    const team = params.get('team');
+    const title = params.get('title');
+
+    if (name || title || stack || team) {
+      return {
+        name: name || '',
+        stack: stack || '',
+        team: team || '',
+        title: title || '',
+      };
+    }
+  } catch (e) {
+    console.warn('Failed to parse share URL params:', e);
+  }
+  return null;
+}
+
+/**
+ * Share via Web Share API with the actual generated PNG file and shareable link.
  * @param {HTMLElement} element
  * @param {string} [customText='#FrameInGoa']
+ * @param {string} [shareUrl]
  */
-export async function shareCardFile(element, customText = '#FrameInGoa') {
+export async function shareCardFile(element, customText = '#FrameInGoa', shareUrl = null) {
   const blob = await getCardPngBlob(element);
   const file = new File([blob], 'HH-Goa-2026-Builder-ID.png', { type: 'image/png' });
 
+  const shareData = {
+    title: 'My Hacker House Goa 2026 Builder ID',
+    text: customText,
+  };
+  if (shareUrl) {
+    shareData.url = shareUrl;
+  }
+
   if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
     await navigator.share({
+      ...shareData,
       files: [file],
-      title: 'My Hacker House Goa 2026 Builder ID',
-      text: customText,
     });
     return 'shared-file';
   } else if (navigator.share) {
-    await navigator.share({
-      title: 'My Hacker House Goa 2026 Builder ID',
-      text: customText,
-    });
+    await navigator.share(shareData);
     return 'shared-text';
   } else {
     throw new Error('Web Share API not supported on this device');
   }
 }
 
-export const nativeShare = async (dataUrl, text) => {
+export const nativeShare = async (dataUrl, text, shareUrl = null) => {
   if (navigator.share) {
-    await navigator.share({ title: 'My Hacker House Goa 2026 Builder ID', text });
+    const shareData = { title: 'My Hacker House Goa 2026 Builder ID', text };
+    if (shareUrl) shareData.url = shareUrl;
+    await navigator.share(shareData);
     return 'native-text';
   }
   return 'unsupported';
 };
 
 /**
- * Open X (Twitter) share intent.
- * Note: Twitter Web Intent API only accepts text & URL parameters (browsers do not allow web intent links to auto-attach local files).
+ * Open X (Twitter) share intent with text and shareable URL.
  * @param {string} [customText]
+ * @param {string} [shareUrl]
  */
-export function shareToX(customText) {
-  const text = customText || `Just got my Hacker House Goa 2026 Builder ID 🌴⚡ #FrameInGoa #HackerHouseGoa`;
-  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-  window.open(url, '_blank', 'noopener,noreferrer,width=600,height=500');
+export function shareToX(customText, shareUrl = null) {
+  const text = customText || `Just got my Hacker House Goa 2026 Builder ID! 🌴⚡ #FrameInGoa #HackerHouseGoa`;
+  let tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  if (shareUrl) {
+    tweetUrl += `&url=${encodeURIComponent(shareUrl)}`;
+  }
+  window.open(tweetUrl, '_blank', 'noopener,noreferrer,width=600,height=500');
 }
+

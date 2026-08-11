@@ -5,9 +5,11 @@ import BuilderForm from './components/BuilderForm';
 import IDCard from './components/IDCard';
 import ActionButtons from './components/ActionButtons';
 import { generateBuilderTitle } from './utils/generateTitle';
+import { parseShareUrlParams } from './utils/exportCard';
 
 // Card internal width (px) — must match IDCard's fixed width
 const CARD_WIDTH = 420;
+
 
 /**
  * ScaledCard
@@ -99,7 +101,31 @@ export default function App() {
   const [photoTransform, setPhotoTransform] = useState({ x: 0, y: 0, scale: 1 });
   const cardRef = useRef(null);
 
+  // Check URL parameters for shared card on initial load
+  useEffect(() => {
+    const sharedData = parseShareUrlParams();
+    if (sharedData && (sharedData.name || sharedData.title || sharedData.stack || sharedData.team)) {
+      const title = sharedData.title || generateBuilderTitle(sharedData.stack, sharedData.name);
+      const loadedUser = {
+        name: sharedData.name || '',
+        stack: sharedData.stack || '',
+        team: sharedData.team || '',
+        title: title,
+        photoUrl: DEFAULT_PHOTO,
+      };
+      setUserData(loadedUser);
+      setFormData({
+        name: sharedData.name || '',
+        stack: sharedData.stack || '',
+        team: sharedData.team || '',
+        photoUrl: DEFAULT_PHOTO,
+      });
+      setPhase('result');
+    }
+  }, []);
+
   // ── Handlers ────────────────────────────────────────────────────────────────
+
   const handleStart = () => setPhase('form');
 
   const handlePhotoReady = (dataUrl) => {
